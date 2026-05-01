@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - API_KEY=${API_KEY}
+      - FLASK_ENV=${FLASK_ENV}
+      - PYTHONUNBUFFERED=1
+    container_name: 1minai
+    restart: unless-stopped

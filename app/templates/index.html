@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1min.ai</title>
+    <link rel="icon" type="image/svg+xml" href="https://docs.1min.ai/img/logo.svg">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="brand">
+                    <img src="https://docs.1min.ai/img/logo.svg" alt="1min.ai" width="28" height="28">
+                    1min.ai
+                </h1>
+                <button class="new-chat-btn" onclick="newChat()">+ Nouveau chat</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="chat-list" id="chatList"></div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="user-avatar" id="userAvatar"></div>
+                <span class="user-name" id="userName">Utilisateur</span>
+            </div>
+        </aside>
+
+        <main class="main-content" id="mainContent">
+            <div class="drag-overlay" id="dragOverlay">
+                <div class="drag-overlay-content">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p>Déposer les fichiers ici</p>
+                </div>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages"></div>
+                
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <div class="image-preview" id="imagePreview"></div>
+                        
+                        <div class="input-controls">
+                            <button class="icon-btn" onclick="openSettings()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Joindre un fichier">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                                </svg>
+                            </button>
+                            <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json,.xml" style="display:none;" multiple onchange="handleFileUpload(event)">
+                        </div>
+
+                        <textarea 
+                            id="promptInput" 
+                            placeholder="Envoyer un message..." 
+                            rows="1"
+                            onkeydown="handleKeydown(event)"></textarea>
+                        
+                        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                            <svg id="sendIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 C22.9702544,11.6889879 22.6563168,11.0605983 21.714504,10.5893061 L4.13399899,1.79186217 C3.34915502,1.4688979 2.40734225,1.5789881 1.77946707,2.10027624 C0.994623095,2.62156438 0.837654326,3.71297459 1.15159189,4.5 L3.03521743,11.2724119 C3.03521743,11.4295093 3.19218622,11.5896069 3.50612381,11.5896069 L16.6915026,12.3750931 C16.6915026,12.3750931 17.1624089,12.3750931 17.1624089,11.89 C17.1624089,11.4050532 16.6915026,11.4050532 16.6915026,11.4050532 Z"></path>
+                            </svg>
+                            <svg id="stopIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none;">
+                                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Paramètres</h2>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label for="modelSelect">Modèle:</label>
+                    <select id="modelSelect" onchange="saveSettings()">
+                    {% for provider, items in models|groupby('provider') %}
+                        <optgroup label="{{ provider }}">
+                        {% for model in items %}
+                            <option value="{{ model.code }}">{{ model.name }}</option>
+                        {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="webSearchCheckbox" onchange="toggleWebSearch()">
+                        Recherche Web
+                    </label>
+                </div>
+
+                <div id="webSearchSettings" style="display: none;">
+                    <div class="setting-group">
+                        <label for="numOfSite">Nombre de sites:</label>
+                        <input type="number" id="numOfSite" min="1" max="10" value="1">
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="maxWord">Nombre maximum de mots:</label>
+                        <input type="number" id="maxWord" min="100" max="5000" value="500" step="100">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSettings()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
